@@ -106,7 +106,9 @@ let D;try{D=JSON.parse(localStorage.getItem("ironlog"))}catch{}
 if(!D||!D.logs)D={logs:{},weights:[]};D.weights=D.weights||[];D.rest=D.rest||90;
 const save=()=>{try{localStorage.setItem("ironlog",JSON.stringify(D))}catch{toast("Could not save. Storage is blocked or full.")}};
 const todayKey=DAYS[(new Date().getDay()+6)%7];
-let sel=todayKey,pex="";
+const START="2026-09-26"; // program start: Sat 26 Sep 2026
+const dayIdx=()=>{const n=new Date(),a=new Date(n.getFullYear(),n.getMonth(),n.getDate()),[y,m,d]=START.split("-");return Math.round((a-new Date(+y,m-1,+d))/864e5)};
+let sel=dayIdx()<0?"Sat":todayKey,pex="";
 const lk=()=>iso()+"_"+sel;
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("show"),2400)}
 function sheet(h){$("sc").innerHTML=h;$("sheet").classList.remove("hidden")}
@@ -116,10 +118,10 @@ const blank=e=>Array.from({length:e[1]},()=>({w:"",r:"",rir:""}));
 const cur=(ei,make)=>{const e=P[sel].e[ei],l=D.logs[lk()]||(make?D.logs[lk()]={}:{});return l[e[0]]||(make?l[e[0]]=blank(e):blank(e))};
 const ok=s=>s.done||(s.w&&s.r);
 const e1=s=>s.w&&s.r?(+s.w)*(1+(+s.r)/30):0;
-const top=a=>Math.max(0,...a.filter(ok).map(e1));
+const topE=a=>Math.max(0,...a.filter(ok).map(e1));
 const vol=a=>a.filter(ok).reduce((t,s)=>t+(+s.w||0)*(+s.r||0),0);
 function prev(name){const ks=Object.keys(D.logs).sort().reverse();for(const k of ks){if(k===lk())continue;const a=D.logs[k][name];if(a&&a.some(x=>x.w||x.r))return{a,d:k.split("_")[0]}}return null}
-function best(name,ex){let b=0;for(const k in D.logs)if(k!==ex&&D.logs[k][name])b=Math.max(b,top(D.logs[k][name]));return b}
+function best(name,ex){let b=0;for(const k in D.logs)if(k!==ex&&D.logs[k][name])b=Math.max(b,topE(D.logs[k][name]));return b}
 const ghost=(pv,s)=>pv?(pv.a[s]||pv.a[pv.a.length-1]):{};
 const bwOn=d=>{const x=D.weights.find(w=>w.date===d);return x?x.weight:""};
 const latestW=()=>D.weights.length?D.weights[D.weights.length-1].weight:"";
@@ -129,6 +131,9 @@ function render(){
   $("today").textContent=new Date().toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"});
   const p=P[sel];
   let h=`<div class="days">${DAYS.map(d=>`<button class="chip ${d===sel?"on":""} ${d===todayKey?"t":""}" onclick="sel='${d}';render()">${d}</button>`).join("")}</div>`;
+  const di=dayIdx();
+  if(di<0)h+=`<div class="card"><b>Program starts Sat 26 Sep 2026</b><div class="mut sm">${-di===1?"Tomorrow":"In "+(-di)+" days"}. You can still look around and log early.</div></div>`;
+  else $("today").textContent+=`  ·  Week ${Math.floor(di/7)+1}`;
   const bw=`<div class="card row"><div><b>Bodyweight</b><div class="mut sm">kg, saved for today</div></div><input class="bw" inputmode="decimal" placeholder="${latestW()||"kg"}" value="${bwOn(iso())}" onchange="setBW(this.value)"></div>`;
   if(!p.e.length){$("home").innerHTML=h+`<h1>Rest day</h1><p class="mut">Recovery is part of the program. Log your bodyweight and get ready for Monday.</p>`+bw;return}
   let tot=0,dn=0;
@@ -159,7 +164,7 @@ function setBW(v){v=parseFloat(String(v).replace(",","."));if(!v)return;D.weight
 function cyc(){D.rest=RS[(RS.indexOf(D.rest)+1)%RS.length];save();render()}
 function finish(){
   const l=D.logs[lk()]||{};let n=0,v=0,pr=[];
-  for(const nm in l){const a=l[nm];n+=a.filter(ok).length;v+=vol(a);const b=best(nm,lk());if(b&&top(a)>b)pr.push(nm)}
+  for(const nm in l){const a=l[nm];n+=a.filter(ok).length;v+=vol(a);const b=best(nm,lk());if(b&&topE(a)>b)pr.push(nm)}
   if(!n)return toast("Log a set first");
   stopRest();
   sheet(`<h2>Workout complete</h2><p class="mut">${n} sets, ${Math.round(v).toLocaleString()} kg total volume.</p>${pr.length?`<p><b>New best:</b> ${pr.join(", ")}</p>`:""}`);
@@ -221,7 +226,7 @@ function renderProg(){
   <div class="card"><h2>Your data</h2><p class="mut sm">Everything is stored on this phone. Export a backup now and then, and add IronLog to your Home Screen so Safari doesn't clear it.</p>
   <div class="row" style="justify-content:flex-start;flex-wrap:wrap"><button class="sm" onclick="exp()">Export backup</button><button class="sm" onclick="$('file').click()">Import backup</button><button class="sm" onclick="wipe()">Reset all data</button></div></div>`;
   chart("c1",ws.map(x=>({d:x.date,y:x.weight})),"kg");
-  if(pex)chart("c2",Object.keys(D.logs).sort().filter(k=>D.logs[k][pex]&&top(D.logs[k][pex])).map(k=>({d:k.split("_")[0],y:top(D.logs[k][pex])})),"kg");
+  if(pex)chart("c2",Object.keys(D.logs).sort().filter(k=>D.logs[k][pex]&&topE(D.logs[k][pex])).map(k=>({d:k.split("_")[0],y:topE(D.logs[k][pex])})),"kg");
 }
 function delW(d){D.weights=D.weights.filter(x=>x.date!==d);save();renderProg()}
 async function exp(){
