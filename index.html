@@ -106,7 +106,7 @@ let D;try{D=JSON.parse(localStorage.getItem("ironlog"))}catch{}
 if(!D||!D.logs)D={logs:{},weights:[]};D.weights=D.weights||[];D.rest=D.rest||90;
 const save=()=>{try{localStorage.setItem("ironlog",JSON.stringify(D))}catch{toast("Could not save. Storage is blocked or full.")}};
 const todayKey=DAYS[(new Date().getDay()+6)%7];
-const START="2026-09-26"; // program start: Sat 26 Sep 2026
+const START="2026-09-28"; // program start: Mon 28 Sep 2026
 const dayIdx=()=>{const n=new Date(),a=new Date(n.getFullYear(),n.getMonth(),n.getDate()),[y,m,d]=START.split("-");return Math.round((a-new Date(+y,m-1,+d))/864e5)};
 let sel=dayIdx()<0?"Sat":todayKey,pex="";
 const lk=()=>iso()+"_"+sel;
@@ -132,7 +132,7 @@ function render(){
   const p=P[sel];
   let h=`<div class="days">${DAYS.map(d=>`<button class="chip ${d===sel?"on":""} ${d===todayKey?"t":""}" onclick="sel='${d}';render()">${d}</button>`).join("")}</div>`;
   const di=dayIdx();
-  if(di<0)h+=`<div class="card"><b>Program starts Sat 26 Sep 2026</b><div class="mut sm">${-di===1?"Tomorrow":"In "+(-di)+" days"}. You can still look around and log early.</div></div>`;
+  if(di<0)h+=`<div class="card"><b>Program starts Mon 28 Sep 2026</b><div class="mut sm">${-di===1?"Tomorrow":"In "+(-di)+" days"}. You can still look around and log early.</div></div>`;
   else $("today").textContent+=`  ·  Week ${Math.floor(di/7)+1}`;
   const bw=`<div class="card row"><div><b>Bodyweight</b><div class="mut sm">kg, saved for today</div></div><input class="bw" inputmode="decimal" placeholder="${latestW()||"kg"}" value="${bwOn(iso())}" onchange="setBW(this.value)"></div>`;
   if(!p.e.length){$("home").innerHTML=h+`<h1>Rest day</h1><p class="mut">Recovery is part of the program. Log your bodyweight and get ready for Monday.</p>`+bw;return}
